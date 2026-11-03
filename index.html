@@ -2,14 +2,14 @@
 <html>
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <!-- Подключаем только базовое ядро MindAR, которое вы сейчас скачали -->
+    <!-- Подключаем только чистую библиотеку без A-Frame -->
     <script src="./mindar-image.prod.js"></script>
     <style>
       html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; }
       #container { width: 100%; height: 100%; position: relative; }
-      /* Элемент видео будет скрыт до момента распознавания козы */
+      /* Элемент видео подстраивается скриптом под габариты картинки */
       #ar-video { display: none; position: absolute; transform-origin: top left; z-index: 10; pointer-events: none; }
-      /* Растягиваем видеопоток камеры на 100% мобильного экрана без искажений */
+      /* Растягиваем поток камеры на весь экран телефона без полос */
       #container video { width: 100% !important; height: 100% !important; object-fit: cover !important; position: absolute; top: 0; left: 0; }
     </style>
   </head>
@@ -25,7 +25,7 @@
         const video = document.querySelector("#ar-video");
         const container = document.querySelector("#container");
 
-        // Инициализация чистого контроллера распознавания картинок
+        // Инициализируем чистый модуль распознавания картинок
         const mindarImage = new window.MINDAR.IMAGE.MindARImage({
           container: container,
           imageTargetSrc: './targets.mind',
@@ -33,14 +33,14 @@
           filterBeta: 0.001
         });
 
-        // Прямой запуск веб-камеры смартфона в браузере
+        // Запуск камеры смартфона на веб-странице
         mindarImage.start().then(() => {
-          console.log("Камера успешно активирована в высоком разрешении");
+          console.log("Камера работает стабильно");
         }).catch(err => {
-          alert("Ошибка доступа к камере. Убедитесь, что выданы разрешения в настройках Chrome: " + err);
+          alert("Ошибка доступа к камере: " + err);
         });
 
-        // Событие: картинка успешно найдена в кадре
+        // Как только коза найдена, берем её экранные координаты и накладываем видеоролик
         mindarImage.on("targetFound", (index) => {
           const pos = mindarImage.getCoordinate(index);
           if (pos) {
@@ -53,7 +53,7 @@
           }
         });
 
-        // Событие: телефон двигается, обновляем координаты видео на экране телефона
+        // Обновляем положение видео при движении рук и наклонах смартфона
         mindarImage.on("targetUpdate", (index) => {
           const pos = mindarImage.getCoordinate(index);
           if (pos) {
@@ -64,7 +64,7 @@
           }
         });
 
-        // Событие: картинка ушла из поля зрения камеры
+        // Увели камеру — убираем видео
         mindarImage.on("targetLost", () => {
           video.pause();
           video.style.display = "none";
