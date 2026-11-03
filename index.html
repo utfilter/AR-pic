@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
   <title>AR-видео</title>
 
   <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
@@ -14,17 +14,57 @@
       width: 100%;
       height: 100%;
       overflow: hidden;
+      background: #111;
+      font-family: sans-serif;
     }
+
     a-scene {
+      position: fixed;
+      inset: 0;
       width: 100%;
       height: 100%;
+    }
+
+    #panel {
+      position: fixed;
+      z-index: 9999;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      padding: 24px;
+      background: rgba(0, 0, 0, 0.82);
+      color: white;
+      text-align: center;
+    }
+
+    #startButton {
+      padding: 14px 22px;
+      border: 0;
+      border-radius: 8px;
+      background: #1687ff;
+      color: white;
+      font-size: 18px;
+    }
+
+    #status {
+      max-width: 32em;
+      line-height: 1.4;
     }
   </style>
 </head>
 
 <body>
+  <div id="panel">
+    <div id="status">Нажмите кнопку, чтобы включить камеру.</div>
+    <button id="startButton">Включить камеру</button>
+  </div>
+
   <a-scene
-    mindar-image="imageTargetSrc: ./target.mind; autoStart: true; uiLoading: no; uiScanning: yes; uiError: yes"
+    mindar-image="imageTargetSrc: ./target.mind; autoStart: false; uiLoading: no; uiScanning: yes; uiError: yes"
+    embedded
     color-space="sRGB"
     renderer="colorManagement: true"
     vr-mode-ui="enabled: false"
@@ -53,21 +93,55 @@
         height="0.75">
       </a-video>
     </a-entity>
-
-    <script>
-      const target = document.querySelector("#target");
-      const video = document.querySelector("#arVideo");
-
-      target.addEventListener("targetFound", () => {
-        video.play().catch((error) => {
-          console.log("Браузер не запустил видео автоматически:", error);
-        });
-      });
-
-      target.addEventListener("targetLost", () => {
-        video.pause();
-      });
-    </script>
   </a-scene>
+
+  <script>
+    const scene = document.querySelector("a-scene");
+    const button = document.querySelector("#startButton");
+    const panel = document.querySelector("#panel");
+    const status = document.querySelector("#status");
+    const video = document.querySelector("#arVideo");
+    const target = document.querySelector("#target");
+
+    scene.addEventListener("arReady", () => {
+      status.textContent = "Камера включена. Наведите её на изображение.";
+      button.textContent = "Камера включена";
+      button.disabled = true;
+    });
+
+    scene.addEventListener("arError", () => {
+      status.textContent =
+        "Не удалось запустить камеру. Проверьте разрешение для сайта и откройте страницу в Safari или Chrome.";
+      button.disabled = false;
+      button.textContent = "Попробовать снова";
+    });
+
+    target.addEventListener("targetFound", () => {
+      video.play().catch(() => {
+        status.textContent = "Маркер найден. Нажмите на экран, чтобы запустить видео.";
+        panel.style.display = "flex";
+      });
+    });
+
+    target.addEventListener("targetLost", () => {
+      video.pause();
+    });
+
+    button.addEventListener("click", async () => {
+      status.textContent = "Запускаю камеру…";
+      button.disabled = true;
+
+      try {
+        const arSystem = scene.systems["mindar-image-system"];
+        await arSystem.start();
+      } catch (error) {
+        console.error("Ошибка запуска AR:", error);
+        status.textContent =
+          "Камера не запустилась. Разрешите доступ к камере в настройках браузера и попробуйте снова.";
+        button.disabled = false;
+        button.textContent = "Попробовать снова";
+      }
+    });
+  </script>
 </body>
 </html>
