@@ -5,18 +5,26 @@
     <script src="./aframe.min.js"></script>
     <script src="./mindar-image-aframe.prod.js"></script>
     <style>
-      /* Принудительно растягиваем видеопоток камеры на весь экран без черных полос */
-      html, body { margin: 0; overflow: hidden; background: #000; width: 100%; height: 100%; }
-      .a-canvas { width: 100% !important; height: 100% !important; object-fit: cover !important; }
-      video { width: 100% !important; height: 100% !important; object-fit: cover !important; }
+      /* Жестко фиксируем тело и холст под размеры мобильного экрана */
+      html, body { margin: 0; padding: 0; width: 100vw; height: 100vh; overflow: hidden; background: #000; }
       
-      /* Полностью скрываем рамку сканирования и белые уголки с экрана */
+      /* Перебиваем внутренние стили библиотек, чтобы убрать черный экран в вертикальном режиме */
+      .a-canvas, video, a-scene { 
+        width: 100vw !important; 
+        height: 100vh !important; 
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        object-fit: cover !important; 
+      }
+      
+      /* Полностью скрываем рамку сканирования */
       .mindar-ui-scanning, .mindar-ui-loading { display: none !important; }
     </style>
   </head>
   <body>
 
-    <!-- Отключаем встроенный UI сканирования uiScanning: no -->
+    <!-- Убираем UI сканирования и фиксируем сцену -->
     <a-scene mindar-image="imageTargetSrc: ./targets.mind; autoStart: true; filterMinCF:0.0001; filterBeta:0.005; uiScanning: no;" 
              embedded
              vr-mode-ui="enabled: false" 
@@ -29,7 +37,7 @@
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
       
-        <!-- Универсальный прямоугольный размер видеоролика под картинку козы -->
+        <!-- Оптимальный прямоугольный размер видеоролика под вашу картинку с робо-козой -->
         <a-video src="#ar-video" width="1.4" height="0.8" position="0 0 0" rotation="0 0 0"></a-video>
       
     </a-scene>
