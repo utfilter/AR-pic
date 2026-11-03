@@ -10,8 +10,8 @@
   </head>
   <body>
 
-    <!-- Добавили повышенную точность распознавания мелких деталей warmupTolerance и missTolerance -->
-    <a-scene mindar-image="imageTargetSrc: ./targets.mind; autoStart: true; filterMinCF:0.0001; filterBeta:0.005; warmupTolerance: 1; missTolerance: 1;" 
+    <!-- Максимально чувствительные настройки сканирования (warmup и miss на нуле, фильтры усилены) -->
+    <a-scene mindar-image="imageTargetSrc: ./targets.mind; autoStart: true; filterMinCF:0.00001; filterBeta:0.001; warmupTolerance: 0; missTolerance: 0;" 
              color-space="sRGB" 
              renderer="colorManagement: true, physicallyCorrectLights" 
              vr-mode-ui="enabled: false" 
@@ -24,7 +24,7 @@
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
       
-        <!-- Настройки для прямоугольного видео/картинки. Если картинка сильно вытянута, пропорции можно подкрутить здесь -->
+        <!-- Стандартный прямоугольный формат. Он совпадает с большинством фото и видео -->
         <a-video src="#ar-video" width="1.6" height="0.9" position="0 0 0" rotation="0 0 0"></a-video>
       
     </a-scene>
