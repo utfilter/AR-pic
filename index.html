@@ -1,74 +1,49 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <script src="./mindar-image.prod.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <!-- Используем гарантированно рабочие версии прямо из вашего репозитория -->
+    <script src="./aframe.min.js"></script>
+    <script src="./mindar-image-aframe.prod.js"></script>
     <style>
-      html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; }
-      #container { width: 100%; height: 100%; position: relative; }
-      #ar-video { display: none; position: absolute; transform-origin: top left; z-index: 10; pointer-events: none; }
-      /* Стили для принудительного растягивания камеры на весть экран */
-      #container video, .mindar-ui-overlay { width: 100% !important; height: 100% !important; object-fit: cover !important; position: absolute; top: 0; left: 0; }
+      body { margin: 0; overflow: hidden; background: #000; }
+      /* Полностью скрываем встроенную серую рамку сканирования и белые уголки */
+      .mindar-ui-scanning, .mindar-ui-loading { display: none !important; }
     </style>
   </head>
   <body>
 
-    <div id="container">
-      <video id="ar-video" src="./video.mp4" loop muted playsinline webkit-playsinline></video>
-    </div>
+    <!-- uiScanning: no отключает рамки. vr-mode-ui="enabled: false" навсегда убирает кнопку VR -->
+    <a-scene mindar-image="imageTargetSrc: ./targets.mind; autoStart: true; filterMinCF:0.001; filterBeta:0.01; uiScanning: no;" 
+             embedded
+             vr-mode-ui="enabled: false" 
+             device-orientation-permission-ui="enabled: false">
+      
+      <a-assets>
+        <!-- Добавили принудительный muted для автоматического обхода ограничений Android -->
+        <video id="ar-video" src="./video.mp4" preload="auto" loop muted playsinline webkit-playsinline></video>
+      </a-assets>
+
+      <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+
+      <!-- Наведение на чистую картинку робо-козы -->
+      
+        <!-- Задаем ровные прямоугольные пропорции для видео (ширина 1.5, высота 0.9) -->
+        <a-video src="#ar-video" width="1.5" height="0.9" position="0 0 0" rotation="0 0 0"></a-video>
+      
+    </a-scene>
 
     <script>
-      document.addEventListener("DOMContentLoaded", () => {
-        const video = document.querySelector("#ar-video");
-        const container = document.querySelector("#container");
-
-        // Инициализируем чистый MindAR
-        const mindarImage = new window.MINDAR.IMAGE.MindARImage({
-          container: container,
-          imageTargetSrc: './targets.mind',
-          filterMinCF: 0.0001,
-          filterBeta: 0.001
-        });
-
-        // Запуск камеры с явным указанием параметров для Android
-        navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } },
-          audio: false
-        }).then((stream) => {
-          // Если системный поток получен успешно, передаем его в MindAR
-          mindarImage.start();
-          console.log("Камера принудительно запущена");
-        }).catch(err => {
-          // Если телефон всё равно блокирует доступ
-          alert("Браузер не смог открыть заднюю камеру. Проверьте разрешения Chrome в Android: " + err);
-        });
-
-        mindarImage.on("targetFound", (index) => {
-          const pos = mindarImage.getCoordinate(index);
-          if (pos) {
-            video.style.left = pos.left + "px";
-            video.style.top = pos.top + "px";
-            video.style.width = pos.width + "px";
-            video.style.height = pos.height + "px";
-            video.style.display = "block";
-            video.play();
-          }
-        });
-
-        mindarImage.on("targetUpdate", (index) => {
-          const pos = mindarImage.getCoordinate(index);
-          if (pos) {
-            video.style.left = pos.left + "px";
-            video.style.top = pos.top + "px";
-            video.style.width = pos.width + "px";
-            video.style.height = pos.height + "px";
-          }
-        });
-
-        mindarImage.on("targetLost", () => {
-          video.pause();
-          video.style.display = "none";
-        });
+      const targetEntity = document.querySelector('#target-entity');
+      const video = document.querySelector('#ar-video');
+      
+      // Логика переключения без сбоев в памяти браузера
+      targetEntity.addEventListener("targetFound", () => { 
+        video.play().catch(err => console.log("Автозапуск заблокирован", err)); 
+      });
+      
+      targetEntity.addEventListener("targetLost", () => { 
+        video.pause(); 
       });
     </script>
   </body>
