@@ -3,7 +3,6 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-
   <title>WebAR</title>
 
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
@@ -11,9 +10,9 @@
 
   <style>
     html, body {
-      margin: 0;
       width: 100%;
       height: 100%;
+      margin: 0;
       overflow: hidden;
       background: #000;
       font-family: sans-serif;
@@ -53,28 +52,22 @@
       width: 100%;
       height: 100%;
     }
+
+    /* Видео нужно загрузить без отображения отдельным элементом */
+    #arVideo {
+      display: none;
+    }
   </style>
 </head>
 
 <body>
   <button id="startButton">Включить камеру</button>
-  <div id="message"></div>
-
-  <video
-    id="video"
-    src="./video.mp4"
-    preload="auto"
-    playsinline
-    webkit-playsinline
-    muted
-    loop
-    crossorigin="anonymous">
-  </video>
+  <div id="message" role="status"></div>
 
   <a-scene
     mindar-image="imageTargetSrc: ./target.mind; autoStart: false; uiLoading: no; uiScanning: yes; uiError: no;"
     color-space="sRGB"
-    renderer="colorManagement: true, physicallyCorrectLights: true"
+    renderer="colorManagement: true"
     vr-mode-ui="enabled: false"
     device-orientation-permission-ui="enabled: false">
 
@@ -91,10 +84,13 @@
       </video>
     </a-assets>
 
-    <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+    <a-camera
+      position="0 0 0"
+      look-controls="enabled: false">
+    </a-camera>
 
     <a-entity id="marker" mindar-image-target="targetIndex: 0">
-      <!-- Размер 4:3: видео заполняет всю область маркера -->
+      <!-- Прямоугольник 4:3, закрывающий всю область маркера -->
       <a-video
         src="#arVideo"
         width="1"
@@ -116,6 +112,19 @@
       message.style.display = "block";
     }
 
+    function waitForEvent(element, eventName, timeoutMs, timeoutText) {
+      return new Promise((resolve, reject) => {
+        const timer = setTimeout(() => {
+          reject(new Error(timeoutText));
+        }, timeoutMs);
+
+        element.addEventListener(eventName, () => {
+          clearTimeout(timer);
+          resolve();
+        }, { once: true });
+      });
+    }
+
     marker.addEventListener("targetFound", async () => {
       try {
         video.muted = true;
@@ -131,21 +140,52 @@
 
     button.addEventListener("click", async () => {
       button.disabled = true;
-      button.textContent = "Запускаю камеру…";
-      message.style.display = "none";
+      button.textContent = "Загрузка AR…";
+      showMessage("Проверяю загрузку страницы…");
 
       try {
-        await new Promise((resolve) => {
-          if (scene.hasLoaded) resolve();
-          else scene.addEventListener("loaded", resolve, { once: true });
-        });
+        if (!window.isSecureContext) {
+          throw new Error("Страница должна открываться по HTTPS.");
+        }
 
-        await scene.systems["mindar-image"].start();
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          throw new Error("Браузер не предоставляет доступ к камере. Откройте сайт в Chrome.");
+        }
+
+        if (!scene.hasLoaded) {
+          showMessage("Жду загрузки AR-сцены…");
+          await waitForEvent(
+            scene,
+            "loaded",
+            15000,
+            "AR-сцена не загрузилась за 15 секунд. Проверьте интернет и перезагрузите страницу."
+          );
+        }
+
+        const mindar = scene.systems["mindar-image"];
+
+        if (!mindar) {
+          throw new Error("MindAR не загрузился. Проверьте интернет и обновите страницу.");
+        }
+
+        button.textContent = "Запрашиваю камеру…";
+        showMessage("Ожидаю запуск камеры. Если появится запрос доступа, нажмите «Разрешить».");
+
+        await Promise.race([
+          mindar.start(),
+          new Promise((_, reject) => {
+            setTimeout(() => {
+              reject(new Error("Запуск камеры не завершился за 20 секунд. Проверьте разрешение камеры для сайта в Chrome."));
+            }, 20000);
+          })
+        ]);
+
+        message.style.display = "none";
         button.style.display = "none";
       } catch (error) {
         button.disabled = false;
         button.textContent = "Попробовать снова";
-        showMessage("Не удалось запустить AR: " + (error.message || error));
+        showMessage("Ошибка: " + (error.message || error));
       }
     });
   </script>
