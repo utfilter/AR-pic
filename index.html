@@ -22,7 +22,7 @@
 
     <div id="start-screen">
       <button id="start-btn">ВКЛЮЧИТЬ AR КАМЕРУ</button>
-      <div id="status">Нажмите для активации дополненной реальности</div>
+      <div id="status">Нажмите для запуска дополненной реальности</div>
     </div>
 
     <a-scene mindar-image="imageTargetSrc: ./targets.mind; autoStart: false; filterMinCF:0.001; filterBeta:0.01;" 
@@ -45,31 +45,25 @@
     <script>
       const startScreen = document.querySelector('#start-screen');
       const startBtn = document.querySelector('#start-btn');
-      const statusDiv = document.querySelector('#status');
       const sceneEl = document.querySelector('a-scene');
       const targetEntity = document.querySelector('#target-entity');
       const video = document.querySelector('#ar-video');
 
       startBtn.addEventListener('click', () => {
-        statusDiv.innerText = "Загрузка AR-модулей (может занять до 10 секунд)...";
-        startBtn.style.display = 'none';
-        
-        // Принудительно готовим видео к запуску
-        video.play().then(() => {
-          video.pause();
-          
-          // Запускаем саму AR сцену
-          const arSystem = sceneEl.systems["mindar-image-system"];
-          arSystem.start();
-          startScreen.style.display = 'none';
-        }).catch(err => {
-          console.log("Ошибка инициализации", err);
-          statusDiv.innerText = "Ошибка. Пожалуйста, откройте ссылку в стандартном браузере (Chrome или Safari).";
-        });
+        // Сразу принудительно стартуем AR-систему и камеру
+        const arSystem = sceneEl.systems["mindar-image-system"];
+        arSystem.start();
+        startScreen.style.display = 'none';
       });
 
-      targetEntity.addEventListener("targetFound", () => { video.play(); });
-      targetEntity.addEventListener("targetLost", () => { video.pause(); });
+      targetEntity.addEventListener("targetFound", () => { 
+        // Видео включится только тогда, когда картинка найдена
+        video.play().catch(err => console.log("Блокировка звука", err)); 
+      });
+      
+      targetEntity.addEventListener("targetLost", () => { 
+        video.pause(); 
+      });
     </script>
   </body>
 </html>
