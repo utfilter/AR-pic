@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://aframe.io"></script>
+    <script src="https://jsdelivr.net"></script>
+    <style>
+      body { margin: 0; overflow: hidden; }
+    </style>
+  </head>
+  <body>
+    <a-scene mindar-image="imageTargetSrc: ./targets.mind; filterMinCF:0.001; filterBeta:0.01;" 
+             color-space="sRGB" 
+             renderer="colorManagement: true, physicallyCorrectLights" 
+             vr-mode-ui="enabled: false" 
+             device-orientation-permission-ui="enabled: false">
+      
+      <a-assets>
+        <video id="ar-video" src="./video.mp4" preload="auto" loop playsinline webkit-playsinline></video>
+      </a-assets>
+
+      <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+
+      
+        <a-video src="#ar-video" width="1" height="1" position="0 0 0" rotation="0 0 0"></a-video>
+      
+    </a-scene>
+
+    <script>
+      const targetEntity = document.querySelector('#target-entity');
+      const video = document.querySelector('#ar-video');
+
+      targetEntity.addEventListener("targetFound", event => {
+        video.play().catch(err => console.log("Автозапуск заблокирован", err));
+      });
+
+      targetEntity.addEventListener("targetLost", event => {
+        video.pause();
+      });
+    </script>
+  </body>
+</html>
