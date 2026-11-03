@@ -2,7 +2,6 @@
 <html>
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <!-- Подключаем файлы, которые вы только что загрузили -->
     <script src="./aframe.min.js"></script>
     <script src="./mindar-image-aframe.prod.js"></script>
     <style>
@@ -11,23 +10,22 @@
   </head>
   <body>
 
-    <!-- Запуск сцены без рамок. Моментальный старт камеры -->
-    <a-scene mindar-image="imageTargetSrc: ./targets.mind; autoStart: true; filterMinCF:0.001; filterBeta:0.01;" 
+    <!-- Добавили повышенную точность распознавания мелких деталей warmupTolerance и missTolerance -->
+    <a-scene mindar-image="imageTargetSrc: ./targets.mind; autoStart: true; filterMinCF:0.0001; filterBeta:0.005; warmupTolerance: 1; missTolerance: 1;" 
              color-space="sRGB" 
              renderer="colorManagement: true, physicallyCorrectLights" 
              vr-mode-ui="enabled: false" 
              device-orientation-permission-ui="enabled: false">
       
       <a-assets>
-        <!-- Видео без предзагрузки, чтобы не вешать телефон -->
         <video id="ar-video" src="./video.mp4" preload="none" loop muted playsinline webkit-playsinline></video>
       </a-assets>
 
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-      <!-- Наведение на чистую картинку -->
       
-        <a-video src="#ar-video" width="1" height="1" position="0 0 0" rotation="0 0 0"></a-video>
+        <!-- Настройки для прямоугольного видео/картинки. Если картинка сильно вытянута, пропорции можно подкрутить здесь -->
+        <a-video src="#ar-video" width="1.6" height="0.9" position="0 0 0" rotation="0 0 0"></a-video>
       
     </a-scene>
 
