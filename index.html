@@ -2,10 +2,11 @@
 <html lang="ru">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <title>AR-видео</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 
-  <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+  <title>WebAR</title>
+
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 
   <style>
@@ -14,8 +15,36 @@
       width: 100%;
       height: 100%;
       overflow: hidden;
-      background: #111;
+      background: #000;
       font-family: sans-serif;
+    }
+
+    #startButton {
+      position: fixed;
+      z-index: 10;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      padding: 16px 22px;
+      border: 0;
+      border-radius: 8px;
+      background: #fff;
+      color: #111;
+      font-size: 18px;
+    }
+
+    #message {
+      display: none;
+      position: fixed;
+      z-index: 20;
+      top: 12px;
+      left: 12px;
+      right: 12px;
+      padding: 12px;
+      border-radius: 6px;
+      background: #fff;
+      color: #111;
+      overflow-wrap: anywhere;
     }
 
     a-scene {
@@ -24,49 +53,28 @@
       width: 100%;
       height: 100%;
     }
-
-    #panel {
-      position: fixed;
-      z-index: 9999;
-      inset: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 14px;
-      padding: 24px;
-      background: rgba(0, 0, 0, 0.82);
-      color: white;
-      text-align: center;
-    }
-
-    #startButton {
-      padding: 14px 22px;
-      border: 0;
-      border-radius: 8px;
-      background: #1687ff;
-      color: white;
-      font-size: 18px;
-    }
-
-    #status {
-      max-width: 32em;
-      line-height: 1.4;
-    }
   </style>
 </head>
 
 <body>
-  <div id="panel">
-    <div id="status">Нажмите кнопку, чтобы включить камеру.</div>
-    <button id="startButton">Включить камеру</button>
-  </div>
+  <button id="startButton">Включить камеру</button>
+  <div id="message"></div>
+
+  <video
+    id="video"
+    src="./video.mp4"
+    preload="auto"
+    playsinline
+    webkit-playsinline
+    muted
+    loop
+    crossorigin="anonymous">
+  </video>
 
   <a-scene
-    mindar-image="imageTargetSrc: ./target.mind; autoStart: false; uiLoading: no; uiScanning: yes; uiError: yes"
-    embedded
+    mindar-image="imageTargetSrc: ./target.mind; autoStart: false; uiLoading: no; uiScanning: yes; uiError: no;"
     color-space="sRGB"
-    renderer="colorManagement: true"
+    renderer="colorManagement: true, physicallyCorrectLights: true"
     vr-mode-ui="enabled: false"
     device-orientation-permission-ui="enabled: false">
 
@@ -78,68 +86,66 @@
         playsinline
         webkit-playsinline
         muted
-        loop>
+        loop
+        crossorigin="anonymous">
       </video>
     </a-assets>
 
     <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-    <a-entity id="target" mindar-image-target="targetIndex: 0">
+    <a-entity id="marker" mindar-image-target="targetIndex: 0">
+      <!-- Размер 4:3: видео заполняет всю область маркера -->
       <a-video
         src="#arVideo"
-        position="0 0 0"
-        rotation="0 0 0"
         width="1"
-        height="0.75">
+        height="0.75"
+        position="0 0 0.01">
       </a-video>
     </a-entity>
   </a-scene>
 
   <script>
+    const button = document.getElementById("startButton");
+    const message = document.getElementById("message");
+    const video = document.getElementById("arVideo");
+    const marker = document.getElementById("marker");
     const scene = document.querySelector("a-scene");
-    const button = document.querySelector("#startButton");
-    const panel = document.querySelector("#panel");
-    const status = document.querySelector("#status");
-    const video = document.querySelector("#arVideo");
-    const target = document.querySelector("#target");
 
-    scene.addEventListener("arReady", () => {
-      status.textContent = "Камера включена. Наведите её на изображение.";
-      button.textContent = "Камера включена";
-      button.disabled = true;
+    function showMessage(text) {
+      message.textContent = text;
+      message.style.display = "block";
+    }
+
+    marker.addEventListener("targetFound", async () => {
+      try {
+        video.muted = true;
+        await video.play();
+      } catch (error) {
+        showMessage("Маркер найден, но видео не запустилось: " + error.message);
+      }
     });
 
-    scene.addEventListener("arError", () => {
-      status.textContent =
-        "Не удалось запустить камеру. Проверьте разрешение для сайта и откройте страницу в Safari или Chrome.";
-      button.disabled = false;
-      button.textContent = "Попробовать снова";
-    });
-
-    target.addEventListener("targetFound", () => {
-      video.play().catch(() => {
-        status.textContent = "Маркер найден. Нажмите на экран, чтобы запустить видео.";
-        panel.style.display = "flex";
-      });
-    });
-
-    target.addEventListener("targetLost", () => {
+    marker.addEventListener("targetLost", () => {
       video.pause();
     });
 
     button.addEventListener("click", async () => {
-      status.textContent = "Запускаю камеру…";
       button.disabled = true;
+      button.textContent = "Запускаю камеру…";
+      message.style.display = "none";
 
       try {
-        const arSystem = scene.systems["mindar-image-system"];
-        await arSystem.start();
+        await new Promise((resolve) => {
+          if (scene.hasLoaded) resolve();
+          else scene.addEventListener("loaded", resolve, { once: true });
+        });
+
+        await scene.systems["mindar-image"].start();
+        button.style.display = "none";
       } catch (error) {
-        console.error("Ошибка запуска AR:", error);
-        status.textContent =
-          "Камера не запустилась. Разрешите доступ к камере в настройках браузера и попробуйте снова.";
         button.disabled = false;
         button.textContent = "Попробовать снова";
+        showMessage("Не удалось запустить AR: " + (error.message || error));
       }
     });
   </script>
