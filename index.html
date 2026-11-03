@@ -2,43 +2,71 @@
 <html>
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <script src="./aframe.min.js"></script>
+    <!-- Подключаем только ядро MindAR, БЕЗ ломающего A-Frame -->
     <script src="./mindar-image-aframe.prod.js"></script>
     <style>
-      body { margin: 0; overflow: hidden; background: #000; }
+      html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; }
+      #container { width: 100%; height: 100%; position: relative; }
+      /* Видео изначально скрыто и будет позиционироваться точно по размерам козы */
+      #ar-video { display: none; position: absolute; transform-origin: top left; z-index: 10; }
     </style>
   </head>
   <body>
 
-    <!-- Максимально чувствительные настройки сканирования (warmup и miss на нуле, фильтры усилены) -->
-    <a-scene mindar-image="imageTargetSrc: ./targets.mind; autoStart: true; filterMinCF:0.00001; filterBeta:0.001; warmupTolerance: 0; missTolerance: 0;" 
-             color-space="sRGB" 
-             renderer="colorManagement: true, physicallyCorrectLights" 
-             vr-mode-ui="enabled: false" 
-             device-orientation-permission-ui="enabled: false">
-      
-      <a-assets>
-        <video id="ar-video" src="./video.mp4" preload="none" loop muted playsinline webkit-playsinline></video>
-      </a-assets>
-
-      <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
-
-      
-        <!-- Стандартный прямоугольный формат. Он совпадает с большинством фото и видео -->
-        <a-video src="#ar-video" width="1.6" height="0.9" position="0 0 0" rotation="0 0 0"></a-video>
-      
-    </a-scene>
+    <div id="container">
+      <!-- Ваше видео -->
+      <video id="ar-video" src="./video.mp4" loop muted playsinline webkit-playsinline></video>
+    </div>
 
     <script>
-      const targetEntity = document.querySelector('#target-entity');
-      const video = document.querySelector('#ar-video');
-      
-      targetEntity.addEventListener("targetFound", () => { 
-        video.play(); 
-      });
-      
-      targetEntity.addEventListener("targetLost", () => { 
-        video.pause(); 
+      document.addEventListener("DOMContentLoaded", () => {
+        const video = document.querySelector("#ar-video");
+        const container = document.querySelector("#container");
+
+        // Запуск чистого контроллера распознавания картинок
+        const mindarImage = new window.MINDAR.IMAGE.MindARImage({
+          container: container,
+          imageTargetSrc: './targets.mind',
+          filterMinCF: 0.0001,
+          filterBeta: 0.001
+        });
+
+        // Принудительно стартуем только камеру смартфона
+        mindarImage.start().then(() => {
+          console.log("Камера запущена");
+        }).catch(err => {
+          console.error("Ошибка камеры", err);
+        });
+
+        // Как только коза найдена, скрипт САМ берет её размеры на экране и растягивает видео точь-в-точь по ней
+        mindarImage.on("targetFound", (index) => {
+          const pos = mindarImage.getCoordinate(index);
+          if (pos) {
+            video.style.left = pos.left + "px";
+            video.style.top = pos.top + "px";
+            video.style.width = pos.width + "px";
+            video.style.height = pos.height + "px";
+            video.style.display = "block";
+            video.play();
+          }
+        });
+
+        // Если вы двигаете телефон, видео двигается и меняет размер вместе с козой
+        mindarImage.on("targetUpdate", (index) => {
+          const pos = mindarImage.getCoordinate(index);
+          if (pos) {
+            video.style.left = pos.left + "px";
+            video.style.top = pos.top + "px";
+            video.style.width = pos.width + "px";
+            video.style.height = pos.height + "px";
+          }
+        });
+
+        // Убрали телефон — видео исчезло
+        mindarImage.on("targetLost", () => {
+          video.pause();
+          video.style.display = "none";
+        });
       });
     </script>
   </body>
