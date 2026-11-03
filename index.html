@@ -2,52 +2,74 @@
 <html>
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <script src="./aframe.min.js"></script>
-    <script src="./mindar-image-aframe.prod.js"></script>
+    <!-- Подключаем только базовое ядро MindAR, которое вы сейчас скачали -->
+    <script src="./mindar-image.prod.js"></script>
     <style>
-      /* Жестко фиксируем тело и холст под размеры мобильного экрана */
-      html, body { margin: 0; padding: 0; width: 100vw; height: 100vh; overflow: hidden; background: #000; }
-      
-      /* Перебиваем внутренние стили библиотек, чтобы убрать черный экран в вертикальном режиме */
-      .a-canvas, video, a-scene { 
-        width: 100vw !important; 
-        height: 100vh !important; 
-        position: absolute !important;
-        top: 0 !important;
-        left: 0 !important;
-        object-fit: cover !important; 
-      }
-      
-      /* Полностью скрываем рамку сканирования */
-      .mindar-ui-scanning, .mindar-ui-loading { display: none !important; }
+      html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; }
+      #container { width: 100%; height: 100%; position: relative; }
+      /* Элемент видео будет скрыт до момента распознавания козы */
+      #ar-video { display: none; position: absolute; transform-origin: top left; z-index: 10; pointer-events: none; }
+      /* Растягиваем видеопоток камеры на 100% мобильного экрана без искажений */
+      #container video { width: 100% !important; height: 100% !important; object-fit: cover !important; position: absolute; top: 0; left: 0; }
     </style>
   </head>
   <body>
 
-    <!-- Убираем UI сканирования и фиксируем сцену -->
-    <a-scene mindar-image="imageTargetSrc: ./targets.mind; autoStart: true; filterMinCF:0.0001; filterBeta:0.005; uiScanning: no;" 
-             embedded
-             vr-mode-ui="enabled: false" 
-             device-orientation-permission-ui="enabled: false">
-      
-      <a-assets>
-        <video id="ar-video" src="./video.mp4" preload="none" loop muted playsinline webkit-playsinline></video>
-      </a-assets>
-
-      <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
-
-      
-        <!-- Оптимальный прямоугольный размер видеоролика под вашу картинку с робо-козой -->
-        <a-video src="#ar-video" width="1.4" height="0.8" position="0 0 0" rotation="0 0 0"></a-video>
-      
-    </a-scene>
+    <div id="container">
+      <!-- Наш видеоролик -->
+      <video id="ar-video" src="./video.mp4" loop muted playsinline webkit-playsinline></video>
+    </div>
 
     <script>
-      const targetEntity = document.querySelector('#target-entity');
-      const video = document.querySelector('#ar-video');
-      
-      targetEntity.addEventListener("targetFound", () => { video.play(); });
-      targetEntity.addEventListener("targetLost", () => { video.pause(); });
+      document.addEventListener("DOMContentLoaded", () => {
+        const video = document.querySelector("#ar-video");
+        const container = document.querySelector("#container");
+
+        // Инициализация чистого контроллера распознавания картинок
+        const mindarImage = new window.MINDAR.IMAGE.MindARImage({
+          container: container,
+          imageTargetSrc: './targets.mind',
+          filterMinCF: 0.0001,
+          filterBeta: 0.001
+        });
+
+        // Прямой запуск веб-камеры смартфона в браузере
+        mindarImage.start().then(() => {
+          console.log("Камера успешно активирована в высоком разрешении");
+        }).catch(err => {
+          alert("Ошибка доступа к камере. Убедитесь, что выданы разрешения в настройках Chrome: " + err);
+        });
+
+        // Событие: картинка успешно найдена в кадре
+        mindarImage.on("targetFound", (index) => {
+          const pos = mindarImage.getCoordinate(index);
+          if (pos) {
+            video.style.left = pos.left + "px";
+            video.style.top = pos.top + "px";
+            video.style.width = pos.width + "px";
+            video.style.height = pos.height + "px";
+            video.style.display = "block";
+            video.play();
+          }
+        });
+
+        // Событие: телефон двигается, обновляем координаты видео на экране телефона
+        mindarImage.on("targetUpdate", (index) => {
+          const pos = mindarImage.getCoordinate(index);
+          if (pos) {
+            video.style.left = pos.left + "px";
+            video.style.top = pos.top + "px";
+            video.style.width = pos.width + "px";
+            video.style.height = pos.height + "px";
+          }
+        });
+
+        // Событие: картинка ушла из поля зрения камеры
+        mindarImage.on("targetLost", () => {
+          video.pause();
+          video.style.display = "none";
+        });
+      });
     </script>
   </body>
 </html>
