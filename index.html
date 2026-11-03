@@ -3,10 +3,16 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <title>WebAR</title>
+  <title>WebAR без A-Frame</title>
 
-  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "./three.module.js",
+        "mindar-image-three": "./mindar-image-three.prod.js"
+      }
+    }
+  </script>
 
   <style>
     html, body {
@@ -16,6 +22,12 @@
       overflow: hidden;
       background: #000;
       font-family: sans-serif;
+    }
+
+    #arContainer {
+      position: fixed;
+      inset: 0;
+      overflow: hidden;
     }
 
     #startButton {
@@ -45,147 +57,105 @@
       color: #111;
       overflow-wrap: anywhere;
     }
-
-    a-scene {
-      position: fixed;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-    }
-
-    /* Видео нужно загрузить без отображения отдельным элементом */
-    #arVideo {
-      display: none;
-    }
   </style>
 </head>
 
 <body>
+  <div id="arContainer"></div>
   <button id="startButton">Включить камеру</button>
   <div id="message" role="status"></div>
 
-  <a-scene
-    mindar-image="imageTargetSrc: ./target.mind; autoStart: false; uiLoading: no; uiScanning: yes; uiError: no;"
-    color-space="sRGB"
-    renderer="colorManagement: true"
-    vr-mode-ui="enabled: false"
-    device-orientation-permission-ui="enabled: false">
+  <script type="module">
+    import * as THREE from "three";
+    import { MindARThree } from "mindar-image-three";
 
-    <a-assets>
-      <video
-        id="arVideo"
-        src="./video.mp4"
-        preload="auto"
-        playsinline
-        webkit-playsinline
-        muted
-        loop
-        crossorigin="anonymous">
-      </video>
-    </a-assets>
-
-    <a-camera
-      position="0 0 0"
-      look-controls="enabled: false">
-    </a-camera>
-
-    <a-entity id="marker" mindar-image-target="targetIndex: 0">
-      <!-- Прямоугольник 4:3, закрывающий всю область маркера -->
-      <a-video
-        src="#arVideo"
-        width="1"
-        height="0.75"
-        position="0 0 0.01">
-      </a-video>
-    </a-entity>
-  </a-scene>
-
-  <script>
+    const container = document.getElementById("arContainer");
     const button = document.getElementById("startButton");
     const message = document.getElementById("message");
-    const video = document.getElementById("arVideo");
-    const marker = document.getElementById("marker");
-    const scene = document.querySelector("a-scene");
 
     function showMessage(text) {
       message.textContent = text;
       message.style.display = "block";
     }
 
-    function waitForEvent(element, eventName, timeoutMs, timeoutText) {
-      return new Promise((resolve, reject) => {
-        const timer = setTimeout(() => {
-          reject(new Error(timeoutText));
-        }, timeoutMs);
-
-        element.addEventListener(eventName, () => {
-          clearTimeout(timer);
-          resolve();
-        }, { once: true });
-      });
-    }
-
-    marker.addEventListener("targetFound", async () => {
-      try {
-        video.muted = true;
-        await video.play();
-      } catch (error) {
-        showMessage("Маркер найден, но видео не запустилось: " + error.message);
-      }
-    });
-
-    marker.addEventListener("targetLost", () => {
-      video.pause();
-    });
+    let mindarThree;
+    let video;
+    let started = false;
 
     button.addEventListener("click", async () => {
       button.disabled = true;
-      button.textContent = "Загрузка AR…";
-      showMessage("Проверяю загрузку страницы…");
+      button.textContent = "Запускаю камеру…";
+      showMessage("Подключаю AR…");
 
       try {
         if (!window.isSecureContext) {
-          throw new Error("Страница должна открываться по HTTPS.");
+          throw new Error("Сайт должен открываться по HTTPS.");
         }
 
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-          throw new Error("Браузер не предоставляет доступ к камере. Откройте сайт в Chrome.");
-        }
+        mindarThree = new MindARThree({
+          container,
+          imageTargetSrc: "./target.mind",
+          uiLoading: "no",
+          uiScanning: "yes",
+          uiError: "no"
+        });
 
-        if (!scene.hasLoaded) {
-          showMessage("Жду загрузки AR-сцены…");
-          await waitForEvent(
-            scene,
-            "loaded",
-            15000,
-            "AR-сцена не загрузилась за 15 секунд. Проверьте интернет и перезагрузите страницу."
-          );
-        }
+        const { renderer, scene, camera } = mindarThree;
+        const anchor = mindarThree.addAnchor(0);
 
-        const mindar = scene.systems["mindar-image"];
+        video = document.createElement("video");
+        video.src = "./video.mp4";
+        video.preload = "auto";
+        video.loop = true;
+        video.muted = true;
+        video.playsInline = true;
+        video.setAttribute("playsinline", "");
+        video.setAttribute("webkit-playsinline", "");
+        video.load();
 
-        if (!mindar) {
-          throw new Error("MindAR не загрузился. Проверьте интернет и обновите страницу.");
-        }
+        const texture = new THREE.VideoTexture(video);
+        texture.colorSpace = THREE.SRGBColorSpace;
 
-        button.textContent = "Запрашиваю камеру…";
-        showMessage("Ожидаю запуск камеры. Если появится запрос доступа, нажмите «Разрешить».");
+        const geometry = new THREE.PlaneGeometry(1, 0.75);
+        const material = new THREE.MeshBasicMaterial({
+          map: texture,
+          side: THREE.DoubleSide
+        });
 
-        await Promise.race([
-          mindar.start(),
-          new Promise((_, reject) => {
-            setTimeout(() => {
-              reject(new Error("Запуск камеры не завершился за 20 секунд. Проверьте разрешение камеры для сайта в Chrome."));
-            }, 20000);
-          })
-        ]);
+        const plane = new THREE.Mesh(geometry, material);
+        anchor.group.add(plane);
 
-        message.style.display = "none";
+        anchor.onTargetFound = async () => {
+          try {
+            await video.play();
+          } catch (error) {
+            showMessage("Маркер найден, но видео не запустилось: " + error.message);
+          }
+        };
+
+        anchor.onTargetLost = () => {
+          video.pause();
+        };
+
+        await mindarThree.start();
+        started = true;
+
+        renderer.setAnimationLoop(() => {
+          renderer.render(scene, camera);
+        });
+
         button.style.display = "none";
+        message.style.display = "none";
       } catch (error) {
         button.disabled = false;
         button.textContent = "Попробовать снова";
-        showMessage("Ошибка: " + (error.message || error));
+        showMessage("Ошибка запуска: " + (error.message || error));
+
+        if (mindarThree && !started) {
+          try {
+            mindarThree.stop();
+          } catch (_) {}
+        }
       }
     });
   </script>
