@@ -1,38 +1,26 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <!-- Подключаем только необходимые библиотеки -->
     <script src="https://aframe.io"></script>
     <script src="https://jsdelivr.net"></script>
     <style>
-      body { margin: 0; overflow: hidden; font-family: sans-serif; }
-      #start-screen {
-        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background: rgba(0,0,0,0.9); z-index: 9999;
-        display: flex; flex-direction: column; align-items: center; justify-content: center;
-      }
-      #start-btn {
-        padding: 15px 40px; font-size: 18px; font-weight: bold; background: #00ff88;
-        border: none; border-radius: 25px; cursor: pointer; color: #000;
-      }
-      #status { color: white; margin-top: 15px; font-size: 14px; text-align: center; padding: 0 20px; }
+      body { margin: 0; overflow: hidden; }
     </style>
   </head>
   <body>
 
-    <div id="start-screen">
-      <button id="start-btn">ВКЛЮЧИТЬ AR КАМЕРУ</button>
-      <div id="status">Нажмите для запуска дополненной реальности</div>
-    </div>
-
-    <a-scene mindar-image="imageTargetSrc: ./targets.mind; autoStart: false; filterMinCF:0.001; filterBeta:0.01;" 
+    <!-- Запускаем сцену автоматически (autoStart: true) -->
+    <a-scene mindar-image="imageTargetSrc: ./targets.mind; autoStart: true; filterMinCF:0.001; filterBeta:0.01;" 
              color-space="sRGB" 
              renderer="colorManagement: true, physicallyCorrectLights" 
              vr-mode-ui="enabled: false" 
              device-orientation-permission-ui="enabled: false">
       
       <a-assets>
-        <video id="ar-video" src="./video.mp4" preload="auto" loop playsinline webkit-playsinline></video>
+        <!-- Добавили параметр muted, чтобы телефон не блокировал запуск видео -->
+        <video id="ar-video" src="./video.mp4" preload="auto" loop muted playsinline webkit-playsinline></video>
       </a-assets>
 
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
@@ -43,22 +31,11 @@
     </a-scene>
 
     <script>
-      const startScreen = document.querySelector('#start-screen');
-      const startBtn = document.querySelector('#start-btn');
-      const sceneEl = document.querySelector('a-scene');
       const targetEntity = document.querySelector('#target-entity');
       const video = document.querySelector('#ar-video');
 
-      startBtn.addEventListener('click', () => {
-        // Сразу принудительно стартуем AR-систему и камеру
-        const arSystem = sceneEl.systems["mindar-image-system"];
-        arSystem.start();
-        startScreen.style.display = 'none';
-      });
-
       targetEntity.addEventListener("targetFound", () => { 
-        // Видео включится только тогда, когда картинка найдена
-        video.play().catch(err => console.log("Блокировка звука", err)); 
+        video.play(); 
       });
       
       targetEntity.addEventListener("targetLost", () => { 
