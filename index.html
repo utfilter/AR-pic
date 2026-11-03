@@ -2,70 +2,45 @@
 <html>
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <!-- Подключаем только ядро MindAR (без тяжелого движка A-Frame) -->
-    <script src="https://jsdelivr.net"></script>
+    <!-- Подключаем файлы, которые вы только что загрузили -->
+    <script src="./aframe.min.js"></script>
+    <script src="./mindar-image-aframe.prod.js"></script>
     <style>
-      html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; }
-      /* Стили для того, чтобы видео ровно приклеивалось к картинке */
-      #container { width: 100%; height: 100%; position: relative; }
-      #ar-video { display: none; position: absolute; transform-origin: top left; z-index: 10; }
+      body { margin: 0; overflow: hidden; background: #000; }
     </style>
   </head>
   <body>
 
-    <div id="container">
-      <!-- Наше видео, изначально скрыто -->
-      <video id="ar-video" src="./video.mp4" loop muted playsinline webkit-playsinline></video>
-    </div>
+    <!-- Запуск сцены без рамок. Моментальный старт камеры -->
+    <a-scene mindar-image="imageTargetSrc: ./targets.mind; autoStart: true; filterMinCF:0.001; filterBeta:0.01;" 
+             color-space="sRGB" 
+             renderer="colorManagement: true, physicallyCorrectLights" 
+             vr-mode-ui="enabled: false" 
+             device-orientation-permission-ui="enabled: false">
+      
+      <a-assets>
+        <!-- Видео без предзагрузки, чтобы не вешать телефон -->
+        <video id="ar-video" src="./video.mp4" preload="none" loop muted playsinline webkit-playsinline></video>
+      </a-assets>
+
+      <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+
+      <!-- Наведение на чистую картинку -->
+      
+        <a-video src="#ar-video" width="1" height="1" position="0 0 0" rotation="0 0 0"></a-video>
+      
+    </a-scene>
 
     <script>
-      document.addEventListener("DOMContentLoaded", () => {
-        const video = document.querySelector("#ar-video");
-        const container = document.querySelector("#container");
-
-        // Запуск контроллера MindAR напрямую
-        const mindarThree = new window.MINDAR.IMAGE.MindARImage({
-          container: container,
-          imageTargetSrc: './targets.mind',
-          filterMinCF: 0.001,
-          filterBeta: 0.01
-        });
-
-        // Старт камеры
-        mindarThree.start().then(() => {
-          console.log("Камера успешно запущена");
-        }).catch(err => {
-          alert("Запрещен доступ к камере или браузер не поддерживается: " + err);
-        });
-
-        // Отслеживание маркера
-        mindarThree.on("targetFound", (index) => {
-          // Получаем координаты картинки в реальном времени
-          const pos = mindarThree.getCoordinate(index);
-          if (pos) {
-            video.style.left = pos.left + "px";
-            video.style.top = pos.top + "px";
-            video.style.width = pos.width + "px";
-            video.style.height = pos.height + "px";
-            video.style.display = "block";
-            video.play();
-          }
-        });
-
-        mindarThree.on("targetUpdate", (index) => {
-          const pos = mindarThree.getCoordinate(index);
-          if (pos) {
-            video.style.left = pos.left + "px";
-            video.style.top = pos.top + "px";
-            video.style.width = pos.width + "px";
-            video.style.height = pos.height + "px";
-          }
-        });
-
-        mindarThree.on("targetLost", () => {
-          video.pause();
-          video.style.display = "none";
-        });
+      const targetEntity = document.querySelector('#target-entity');
+      const video = document.querySelector('#ar-video');
+      
+      targetEntity.addEventListener("targetFound", () => { 
+        video.play(); 
+      });
+      
+      targetEntity.addEventListener("targetLost", () => { 
+        video.pause(); 
       });
     </script>
   </body>
