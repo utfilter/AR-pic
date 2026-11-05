@@ -12538,14 +12538,12 @@ class It extends De {
     this.webcamConfig.facingMode && w(this.webcamConfig.facingMode === "user" || this.webcamConfig.facingMode === "environment", () => `Invalid webcam facing mode: ${this.webcamConfig.facingMode}. Please provide 'user' or 'environment'`);
     try {
       this.stream = await navigator.mediaDevices.getUserMedia({
-video: {
-  deviceId: this.webcamConfig.deviceId,
-  facingMode: this.webcamConfig.facingMode
-    ? this.webcamConfig.facingMode
-    : "environment",
-  width: this.webcamVideoElement.width,
-  height: this.webcamVideoElement.height
-}
+        video: {
+          deviceId: this.webcamConfig.deviceId,
+          facingMode: this.webcamConfig.facingMode ? this.webcamConfig.facingMode : "user",
+          width: this.webcamVideoElement.width,
+          height: this.webcamVideoElement.height
+        }
       });
     } catch (e) {
       throw e.message = `Error thrown while initializing video stream: ${e.message}`, e;
