@@ -26,40 +26,83 @@
     }
 
     #arContainer {
-  position: fixed;
-  inset: 0;
-  overflow: hidden;
-  z-index: 1;
-  pointer-events: none;
-}
+      position: fixed;
+      inset: 0;
+      overflow: hidden;
+      z-index: 1;
+      pointer-events: none;
+    }
 
-#arContainer video,
-#arContainer canvas {
-  pointer-events: none !important;
-}
+    #arContainer video,
+    #arContainer canvas {
+      pointer-events: none !important;
+    }
 
-#startButton {
-  position: fixed;
-  z-index: 1000;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  padding: 16px 22px;
-  border: 0;
-  border-radius: 8px;
-  background: #fff;
-  color: #111;
-  font-size: 18px;
-  pointer-events: auto;
-  touch-action: manipulation;
-}
+    #startButton {
+      position: fixed;
+      z-index: 1000;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      padding: 16px 22px;
+      border: 0;
+      border-radius: 8px;
+      background: #fff;
+      color: #111;
+      font-size: 18px;
+      pointer-events: auto;
+      touch-action: manipulation;
+    }
+
+    #message {
+      display: none;
+      position: fixed;
+      z-index: 1100;
+      top: 12px;
+      left: 12px;
+      right: 12px;
+      padding: 12px;
+      border-radius: 6px;
+      background: #fff;
+      color: #111;
+      overflow-wrap: anywhere;
+    }
   </style>
 </head>
 
 <body>
   <div id="arContainer"></div>
-  <button id="startButton" type="button">Включить камеру</button>
+
+  <button
+    id="startButton"
+    type="button"
+    onclick="this.textContent='Нажатие сработало';">
+    Включить камеру
+  </button>
+
   <div id="message" role="status"></div>
+
+  <!-- Показывает ошибки загрузки JavaScript-модулей -->
+  <script>
+    window.addEventListener("error", function (event) {
+      const message = document.getElementById("message");
+      if (message) {
+        message.textContent =
+          "Ошибка JavaScript: " + (event.message || "не удалось загрузить файл");
+        message.style.display = "block";
+      }
+    });
+
+    window.addEventListener("unhandledrejection", function (event) {
+      const message = document.getElementById("message");
+      if (message) {
+        const reason = event.reason;
+        message.textContent =
+          "Ошибка запуска: " + (reason && reason.message ? reason.message : reason);
+        message.style.display = "block";
+      }
+    });
+  </script>
 
   <script type="module">
     import * as THREE from "three";
@@ -88,6 +131,10 @@
           throw new Error("Сайт должен открываться по HTTPS.");
         }
 
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          throw new Error("Браузер не предоставляет доступ к камере.");
+        }
+
         mindarThree = new MindARThree({
           container: container,
           imageTargetSrc: "./target.mind",
@@ -112,7 +159,7 @@
         const videoTexture = new THREE.VideoTexture(video);
         videoTexture.colorSpace = THREE.SRGBColorSpace;
 
-        // Плоскость 4:3 — соответствует пропорциям маркера.
+        // Плоскость 4:3 под маркер с такими же пропорциями.
         const geometry = new THREE.PlaneGeometry(1, 0.75);
         const material = new THREE.MeshBasicMaterial({
           map: videoTexture,
