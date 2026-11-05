@@ -12538,11 +12538,9 @@ class It extends De {
     this.webcamConfig.facingMode && w(this.webcamConfig.facingMode === "user" || this.webcamConfig.facingMode === "environment", () => `Invalid webcam facing mode: ${this.webcamConfig.facingMode}. Please provide 'user' or 'environment'`);
     try {
       this.stream = await navigator.mediaDevices.getUserMedia({
-      video: {
+video: {
   deviceId: this.webcamConfig.deviceId,
-  facingMode: this.webcamConfig.facingMode
-    ? this.webcamConfig.facingMode
-    : "environment",
+  facingMode: "environment",
   width: { ideal: 1280 },
   height: { ideal: 720 }
 }
