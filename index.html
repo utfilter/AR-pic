@@ -115,10 +115,12 @@
           );
         }
 
-        const mindarThree = new MindARThree({
-          container: container,
-          imageTargetSrc: "./target.mind"
-        });
+       const mindarThree = new MindARThree({
+       container: container,
+       imageTargetSrc: "./target.mind",
+       filterMinCF: 0.0001,
+       filterBeta: 1000
+       });
 
         const { renderer, scene, camera } = mindarThree;
         const anchor = mindarThree.addAnchor(0);
