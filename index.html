@@ -10,6 +10,7 @@
     {
       "imports": {
         "three": "./three.module.js",
+        "three/addons/": "./addons/",
         "mindar-image-three": "./mindar-image-three.prod.js"
       }
     }
@@ -73,19 +74,16 @@
 <body>
   <div id="arContainer"></div>
 
-  <button
-    id="startButton"
-    type="button"
-    onclick="this.textContent='Нажатие сработало';">
+  <button id="startButton" type="button">
     Включить камеру
   </button>
 
   <div id="message" role="status"></div>
 
-  <!-- Показывает ошибки загрузки JavaScript-модулей -->
   <script>
     window.addEventListener("error", function (event) {
       const message = document.getElementById("message");
+
       if (message) {
         message.textContent =
           "Ошибка JavaScript: " + (event.message || "не удалось загрузить файл");
@@ -95,10 +93,12 @@
 
     window.addEventListener("unhandledrejection", function (event) {
       const message = document.getElementById("message");
+      const reason = event.reason;
+
       if (message) {
-        const reason = event.reason;
         message.textContent =
-          "Ошибка запуска: " + (reason && reason.message ? reason.message : reason);
+          "Ошибка запуска: " +
+          (reason && reason.message ? reason.message : String(reason));
         message.style.display = "block";
       }
     });
@@ -136,7 +136,7 @@
         }
 
         mindarThree = new MindARThree({
-          container: container,
+          container,
           imageTargetSrc: "./target.mind",
           uiLoading: "no",
           uiScanning: "yes",
