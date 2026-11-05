@@ -6,11 +6,12 @@
   <meta name="theme-color" content="#000000">
   <title>WebAR</title>
 
- <script type="importmap">
-{
-  "imports": {
-    "three": "./three.module.js",
-    "three/addons/renderers/CSS3DRenderer.js":
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "./three.module.js",
+        "three/addons/renderers/CSS3DRenderer.js": "./CSS3DRenderer.js",
+        "mindar-image-three": "./mindar-image-three.prod.js"
       }
     }
   </script>
@@ -89,9 +90,9 @@
       message.style.display = "block";
     }
 
-    let started = false;
     let mindarThree;
     let video;
+    let started = false;
 
     button.addEventListener("click", async () => {
       button.disabled = true;
@@ -101,6 +102,10 @@
       try {
         if (!window.isSecureContext) {
           throw new Error("Сайт должен открываться по HTTPS.");
+        }
+
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          throw new Error("Браузер не предоставляет доступ к камере.");
         }
 
         const THREE = await import("three");
@@ -114,7 +119,7 @@
         showMessage("Настраиваю AR-сцену…");
 
         mindarThree = new MindARThree({
-          container: container,
+          container,
           imageTargetSrc: "./target.mind",
           uiLoading: "no",
           uiScanning: "yes",
@@ -137,7 +142,7 @@
         const videoTexture = new THREE.VideoTexture(video);
         videoTexture.colorSpace = THREE.SRGBColorSpace;
 
-        // Размер плоскости 4:3 — под маркер с такими же пропорциями.
+        // Плоскость 4:3 под маркер с таким же соотношением сторон.
         const geometry = new THREE.PlaneGeometry(1, 0.75);
         const material = new THREE.MeshBasicMaterial({
           map: videoTexture,
@@ -151,7 +156,7 @@
           try {
             await video.play();
           } catch (error) {
-            showMessage("Маркер найден, но видео не запустилось: " + error.message);
+            showMessage("Видео не запустилось: " + error.message);
           }
         };
 
