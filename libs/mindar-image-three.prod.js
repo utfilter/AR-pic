@@ -12540,9 +12540,11 @@ class It extends De {
       this.stream = await navigator.mediaDevices.getUserMedia({
 video: {
   deviceId: this.webcamConfig.deviceId,
-  facingMode: "environment",
-  width: { ideal: 1280 },
-  height: { ideal: 720 }
+  facingMode: this.webcamConfig.facingMode
+    ? this.webcamConfig.facingMode
+    : "environment",
+  width: this.webcamVideoElement.width,
+  height: this.webcamVideoElement.height
 }
       });
     } catch (e) {
