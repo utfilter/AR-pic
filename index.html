@@ -26,38 +26,33 @@
     }
 
     #arContainer {
-      position: fixed;
-      inset: 0;
-      overflow: hidden;
-    }
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  z-index: 1;
+  pointer-events: none;
+}
 
-    #startButton {
-      position: fixed;
-      z-index: 10;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      padding: 16px 22px;
-      border: 0;
-      border-radius: 8px;
-      background: #fff;
-      color: #111;
-      font-size: 18px;
-    }
+#arContainer video,
+#arContainer canvas {
+  pointer-events: none !important;
+}
 
-    #message {
-      display: none;
-      position: fixed;
-      z-index: 20;
-      top: 12px;
-      left: 12px;
-      right: 12px;
-      padding: 12px;
-      border-radius: 6px;
-      background: #fff;
-      color: #111;
-      overflow-wrap: anywhere;
-    }
+#startButton {
+  position: fixed;
+  z-index: 1000;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 16px 22px;
+  border: 0;
+  border-radius: 8px;
+  background: #fff;
+  color: #111;
+  font-size: 18px;
+  pointer-events: auto;
+  touch-action: manipulation;
+}
   </style>
 </head>
 
