@@ -7,14 +7,14 @@
   <title>WebAR</title>
 
   <script type="importmap">
-{
-  "imports": {
-    "three": "./three.module.js",
-    "three/addons/renderers/CSS3DRenderer.js": "./CSS3DRenderer.js",
-    "mindar-image-three": "./mindar-image-three.prod.js"
-  }
-}
-</script>
+    {
+      "imports": {
+        "three": "./three.module.js",
+        "three/addons/renderers/CSS3DRenderer.js": "./CSS3DRenderer.js",
+        "mindar-image-three": "./mindar-image-three.prod.js"
+      }
+    }
+  </script>
 
   <style>
     html, body {
@@ -74,72 +74,48 @@
 <body>
   <div id="arContainer"></div>
 
-<button
-  id="startButton"
-  type="button"
-  onclick="this.textContent='Нажатие сработало';">
-  Включить камеру
-</button>
+  <button id="startButton" type="button">
+    Включить камеру
+  </button>
 
   <div id="message" role="status"></div>
 
   <script>
-    window.addEventListener("error", function (event) {
-      const message = document.getElementById("message");
-
-      if (message) {
-        message.textContent =
-          "Ошибка JavaScript: " + (event.message || "не удалось загрузить файл");
-        message.style.display = "block";
-      }
-    });
-
-    window.addEventListener("unhandledrejection", function (event) {
-      const message = document.getElementById("message");
-      const reason = event.reason;
-
-      if (message) {
-        message.textContent =
-          "Ошибка запуска: " +
-          (reason && reason.message ? reason.message : String(reason));
-        message.style.display = "block";
-      }
-    });
-  </script>
-
-  <script type="module">
-    import * as THREE from "three";
-    import { MindARThree } from "mindar-image-three";
-
     const container = document.getElementById("arContainer");
     const button = document.getElementById("startButton");
     const message = document.getElementById("message");
-
-    let mindarThree;
-    let video;
-    let started = false;
 
     function showMessage(text) {
       message.textContent = text;
       message.style.display = "block";
     }
 
+    let started = false;
+    let mindarThree;
+    let video;
+
     button.addEventListener("click", async () => {
       button.disabled = true;
-      button.textContent = "Запускаю камеру…";
-      showMessage("Подключаю AR…");
+      button.textContent = "Загружаю AR…";
+      showMessage("Загружаю библиотеки…");
 
       try {
         if (!window.isSecureContext) {
           throw new Error("Сайт должен открываться по HTTPS.");
         }
 
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-          throw new Error("Браузер не предоставляет доступ к камере.");
+        const THREE = await import("three");
+        const mindarModule = await import("mindar-image-three");
+        const MindARThree = mindarModule.MindARThree;
+
+        if (!MindARThree) {
+          throw new Error("В MindAR-модуле не найден MindARThree.");
         }
 
+        showMessage("Настраиваю AR-сцену…");
+
         mindarThree = new MindARThree({
-          container,
+          container: container,
           imageTargetSrc: "./target.mind",
           uiLoading: "no",
           uiScanning: "yes",
@@ -162,7 +138,7 @@
         const videoTexture = new THREE.VideoTexture(video);
         videoTexture.colorSpace = THREE.SRGBColorSpace;
 
-        // Плоскость 4:3 под маркер с такими же пропорциями.
+        // Размер плоскости 4:3 — под маркер с такими же пропорциями.
         const geometry = new THREE.PlaneGeometry(1, 0.75);
         const material = new THREE.MeshBasicMaterial({
           map: videoTexture,
@@ -184,6 +160,7 @@
           video.pause();
         };
 
+        showMessage("Запрашиваю доступ к камере…");
         await mindarThree.start();
         started = true;
 
@@ -196,7 +173,7 @@
       } catch (error) {
         button.disabled = false;
         button.textContent = "Попробовать снова";
-        showMessage("Ошибка запуска: " + (error.message || error));
+        showMessage("Ошибка: " + (error.message || String(error)));
 
         if (mindarThree && !started) {
           try {
