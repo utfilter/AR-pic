@@ -3,7 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <title>WebAR без A-Frame</title>
+  <meta name="theme-color" content="#000000">
+  <title>WebAR</title>
 
   <script type="importmap">
     {
@@ -62,7 +63,7 @@
 
 <body>
   <div id="arContainer"></div>
-  <button id="startButton">Включить камеру</button>
+  <button id="startButton" type="button">Включить камеру</button>
   <div id="message" role="status"></div>
 
   <script type="module">
@@ -73,14 +74,14 @@
     const button = document.getElementById("startButton");
     const message = document.getElementById("message");
 
+    let mindarThree;
+    let video;
+    let started = false;
+
     function showMessage(text) {
       message.textContent = text;
       message.style.display = "block";
     }
-
-    let mindarThree;
-    let video;
-    let started = false;
 
     button.addEventListener("click", async () => {
       button.disabled = true;
@@ -93,7 +94,7 @@
         }
 
         mindarThree = new MindARThree({
-          container,
+          container: container,
           imageTargetSrc: "./target.mind",
           uiLoading: "no",
           uiScanning: "yes",
@@ -113,17 +114,18 @@
         video.setAttribute("webkit-playsinline", "");
         video.load();
 
-        const texture = new THREE.VideoTexture(video);
-        texture.colorSpace = THREE.SRGBColorSpace;
+        const videoTexture = new THREE.VideoTexture(video);
+        videoTexture.colorSpace = THREE.SRGBColorSpace;
 
+        // Плоскость 4:3 — соответствует пропорциям маркера.
         const geometry = new THREE.PlaneGeometry(1, 0.75);
         const material = new THREE.MeshBasicMaterial({
-          map: texture,
+          map: videoTexture,
           side: THREE.DoubleSide
         });
 
-        const plane = new THREE.Mesh(geometry, material);
-        anchor.group.add(plane);
+        const videoPlane = new THREE.Mesh(geometry, material);
+        anchor.group.add(videoPlane);
 
         anchor.onTargetFound = async () => {
           try {
