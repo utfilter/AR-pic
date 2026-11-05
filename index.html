@@ -38,6 +38,11 @@
       background: #fff;
       color: #111;
       font-size: 17px;
+      cursor: pointer;
+    }
+
+    #start-button:disabled {
+      opacity: 0.65;
     }
 
     #status {
@@ -62,7 +67,8 @@
   {
     "imports": {
       "three": "./three.module.js",
-      "three/addons/renderers/CSS3DRenderer.js": "./CSS3DRenderer.js"
+      "three/addons/renderers/CSS3DRenderer.js": "./CSS3DRenderer.js",
+      "three/examples/jsm/renderers/CSS3DRenderer.js": "./CSS3DRenderer.js"
     }
   }
   </script>
@@ -96,17 +102,21 @@
       status.textContent = "Загрузка AR…";
 
       try {
+        const THREE = await import("three");
+
         const mindarModule =
           await import("./libs/mindar-image-three.prod.js");
 
         const MindARThree = mindarModule.MindARThree;
 
         if (!MindARThree) {
-          throw new Error("В файле MindAR не найден экспорт MindARThree.");
+          throw new Error(
+            "В файле MindAR не найден экспорт MindARThree."
+          );
         }
 
         const mindarThree = new MindARThree({
-          container,
+          container: container,
           imageTargetSrc: "./target.mind"
         });
 
@@ -119,7 +129,7 @@
           side: THREE.DoubleSide
         });
 
-        // Плоскость с пропорцией 4:3, как у маркера.
+        // Плоскость имеет пропорцию 4:3, как у маркера.
         const videoPlane = new THREE.Mesh(
           new THREE.PlaneGeometry(1, 0.75),
           videoMaterial
@@ -129,6 +139,7 @@
 
         anchor.onTargetFound = () => {
           status.textContent = "Маркер найден";
+
           video.play().catch((error) => {
             console.error("Ошибка запуска видео:", error);
             status.textContent = "Не удалось запустить видео";
@@ -151,7 +162,9 @@
         });
       } catch (error) {
         console.error("Ошибка запуска AR:", error);
-        status.textContent = "Ошибка: " + (error.message || String(error));
+        status.textContent =
+          "Ошибка: " + (error.message || String(error));
+
         startButton.disabled = false;
         startButton.textContent = "Попробовать снова";
       }
